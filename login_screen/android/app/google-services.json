@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "21286114771",
+    "project_id": "ai-study-planner-3ef4b",
+    "storage_bucket": "ai-study-planner-3ef4b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:21286114771:android:5e048fddffac08433d0b26",
+        "android_client_info": {
+          "package_name": "com.example.login_screen"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDlb9obW7FYhNB-Zlgdr_Ugsudhc69eCo0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

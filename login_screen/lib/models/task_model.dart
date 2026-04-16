@@ -1,21 +1,43 @@
 class TaskModel {
+  String? id;
   String task;
   String subject;
   String hours;
+  bool isDone;
+  String? deadline;
 
-  TaskModel({required this.task, required this.subject, required this.hours});
+  TaskModel({
+    this.id,
+    required this.task,
+    required this.subject,
+    required this.hours,
+    this.isDone = false,
+    this.deadline,
+  });
 
-  // 🔥 Convert to Map (for Hive)
-  Map<String, dynamic> toMap() {
-    return {"task": task, "subject": subject, "hours": hours};
+  /// Serialize for Firestore
+  Map<String, dynamic> toFirestore() {
+    return {
+      'task': task,
+      'subject': subject,
+      'hours': hours,
+      'isDone': isDone,
+      'deadline': deadline,
+    };
   }
 
-  // 🔥 Convert from Map
-  factory TaskModel.fromMap(Map<dynamic, dynamic> data) {
+  /// Legacy alias used by algorithm
+  Map<String, dynamic> toMap() => toFirestore();
+
+  /// Deserialize from Firestore doc
+  factory TaskModel.fromFirestore(Map<String, dynamic> data, String docId) {
     return TaskModel(
-      task: data["task"],
-      subject: data["subject"],
-      hours: data["hours"],
+      id: docId,
+      task: data['task'] ?? '',
+      subject: data['subject'] ?? '',
+      hours: data['hours'] ?? '1',
+      isDone: data['isDone'] ?? false,
+      deadline: data['deadline'],
     );
   }
 }

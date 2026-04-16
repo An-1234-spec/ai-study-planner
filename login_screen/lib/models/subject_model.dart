@@ -1,21 +1,39 @@
 class SubjectModel {
+  String? id;
   String name;
   String hours;
   String? date;
+  String priority;
 
-  SubjectModel({required this.name, required this.hours, this.date});
+  SubjectModel({
+    this.id,
+    required this.name,
+    required this.hours,
+    this.date,
+    this.priority = 'Medium',
+  });
 
-  // Convert to Map (for Hive storage)
-  Map<String, dynamic> toMap() {
-    return {"name": name, "hours": hours, "date": date};
+  /// Serialize for Firestore
+  Map<String, dynamic> toFirestore() {
+    return {
+      'name': name,
+      'hours': hours,
+      'date': date,
+      'priority': priority,
+    };
   }
 
-  // 🔥 Convert from Map (for reading from Hive)
-  factory SubjectModel.fromMap(Map<dynamic, dynamic> data) {
+  /// Legacy alias used by algorithm
+  Map<String, dynamic> toMap() => toFirestore();
+
+  /// Deserialize from Firestore doc
+  factory SubjectModel.fromFirestore(Map<String, dynamic> data, String docId) {
     return SubjectModel(
-      name: data["name"],
-      hours: data["hours"],
-      date: data["date"],
+      id: docId,
+      name: data['name'] ?? '',
+      hours: data['hours'] ?? '1',
+      date: data['date'],
+      priority: data['priority'] ?? 'Medium',
     );
   }
 }
