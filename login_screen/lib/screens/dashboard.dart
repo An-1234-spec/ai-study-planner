@@ -22,7 +22,6 @@ class DashboardScreen extends StatelessWidget {
           floatingActionButton: Column(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              // Add Task FAB
               FloatingActionButton(
                 heroTag: 'task',
                 backgroundColor: Colors.orange,
@@ -34,7 +33,6 @@ class DashboardScreen extends StatelessWidget {
                 child: const Icon(Icons.task_alt, color: Colors.white),
               ),
               const SizedBox(height: 12),
-              // Add Subject FAB
               FloatingActionButton(
                 heroTag: 'subject',
                 backgroundColor: AppColors.primary,
@@ -58,12 +56,11 @@ class DashboardScreen extends StatelessWidget {
             child: SafeArea(
               child: Column(
                 children: [
-                  // ── Header ─────────────────────────────────────
+                  // ── Header ───────────────────────────────────────
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 16, 12, 0),
                     child: Row(
                       children: [
-                        // Avatar circle
                         CircleAvatar(
                           radius: 22,
                           backgroundColor:
@@ -87,7 +84,7 @@ class DashboardScreen extends StatelessWidget {
                               Text(
                                 'Hello, ${auth.displayName} 👋',
                                 style: const TextStyle(
-                                  fontSize: 17,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
                                 ),
@@ -95,7 +92,7 @@ class DashboardScreen extends StatelessWidget {
                               const Text(
                                 'Dashboard 📚',
                                 style: TextStyle(
-                                    fontSize: 13, color: Colors.white70),
+                                    fontSize: 12, color: Colors.white70),
                               ),
                             ],
                           ),
@@ -121,9 +118,9 @@ class DashboardScreen extends StatelessWidget {
                     ),
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
 
-                  // ── Stats row ──────────────────────────────────
+                  // ── Stats row ─────────────────────────────────────
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Row(
@@ -137,15 +134,15 @@ class DashboardScreen extends StatelessWidget {
                         const SizedBox(width: 10),
                         _statChip(
                           icon: Icons.task_alt,
-                          label: '${study.completedTasks}/${study.totalTasks}',
-                          sub: 'Tasks Done',
+                          label:
+                              '${study.completedHoursFormatted}/${study.totalHoursFormatted}',
+                          sub: 'Hours Done',
                           color: Colors.green.shade300,
                         ),
                         const SizedBox(width: 10),
                         _statChip(
                           icon: Icons.trending_up,
-                          label:
-                              '${(study.progress * 100).toInt()}%',
+                          label: '${(study.progress * 100).toInt()}%',
                           sub: 'Progress',
                           color: Colors.orange.shade300,
                         ),
@@ -153,13 +150,13 @@ class DashboardScreen extends StatelessWidget {
                     ),
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
 
-                  // ── Main scrollable body ───────────────────────
+                  // ── Main scrollable body ──────────────────────────
                   Expanded(
                     child: Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                      padding: const EdgeInsets.fromLTRB(20, 22, 20, 0),
                       decoration: const BoxDecoration(
                         color: Color(0xFFF8F9FF),
                         borderRadius: BorderRadius.only(
@@ -169,26 +166,42 @@ class DashboardScreen extends StatelessWidget {
                       ),
                       child: ListView(
                         children: [
-                          // ── Upcoming deadlines ─────────────────
+                          // ── Skip-day warning ─────────────────────
+                          if (study.skippedDay) ...[
+                            _SkipDayBanner(study: study),
+                            const SizedBox(height: 16),
+                          ],
+
+                          // ── Motivational tip ──────────────────────
+                          if (study.timetable.isNotEmpty) ...[
+                            _TipCard(tip: study.todaysTip),
+                            const SizedBox(height: 16),
+                          ],
+
+                          // ── Upcoming exams ────────────────────────
                           if (study.upcomingSubjects.isNotEmpty) ...[
                             _sectionTitle('🔔 Upcoming Exams'),
                             const SizedBox(height: 8),
                             ...study.upcomingSubjects.take(3).map((s) {
-                              final date = DateTime.tryParse(s['date'] ?? '');
+                              final date =
+                                  DateTime.tryParse(s['date'] ?? '');
                               final daysLeft = date != null
-                                  ? date.difference(DateTime.now()).inDays
+                                  ? date
+                                      .difference(DateTime.now())
+                                      .inDays
                                   : 0;
                               return _deadlineBanner(
-                                  s['name'], daysLeft, s['priority']);
+                                  s['name'], daysLeft, s['difficulty']);
                             }),
                             const SizedBox(height: 20),
                           ],
 
-                          // ── Subjects ───────────────────────────
+                          // ── Subjects ──────────────────────────────
                           _sectionTitle('📚 Your Subjects'),
                           const SizedBox(height: 10),
                           study.subjects.isEmpty
-                              ? _emptyHint('No subjects yet.\nTap ➕ to add one.')
+                              ? _emptyHint(
+                                  'No subjects yet.\nTap ➕ to add one.')
                               : Column(
                                   children: study.subjects.map((s) {
                                     return Dismissible(
@@ -211,7 +224,7 @@ class DashboardScreen extends StatelessWidget {
 
                           const SizedBox(height: 20),
 
-                          // ── Tasks ──────────────────────────────
+                          // ── Tasks ─────────────────────────────────
                           _sectionTitle('📝 Your Tasks'),
                           const SizedBox(height: 10),
                           study.tasks.isEmpty
@@ -243,7 +256,7 @@ class DashboardScreen extends StatelessWidget {
 
                           const SizedBox(height: 24),
 
-                          // ── Action buttons ─────────────────────
+                          // ── Action buttons ────────────────────────
                           _actionButton(
                             context,
                             icon: Icons.auto_awesome,
@@ -252,7 +265,8 @@ class DashboardScreen extends StatelessWidget {
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) => const TimetableScreen()),
+                                  builder: (_) =>
+                                      const TimetableScreen()),
                             ),
                           ),
                           const SizedBox(height: 12),
@@ -282,7 +296,7 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  // ── Helper widgets ────────────────────────────────────────────────
+  // ── Helpers ──────────────────────────────────────────────────────
 
   Widget _statChip({
     required IconData icon,
@@ -319,7 +333,8 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _deadlineBanner(String name, int daysLeft, String? priority) {
+  Widget _deadlineBanner(
+      String name, int daysLeft, String? difficulty) {
     final Color c = daysLeft <= 3
         ? Colors.red.shade400
         : daysLeft <= 7
@@ -339,15 +354,20 @@ class DashboardScreen extends StatelessWidget {
           Icon(Icons.event_busy_rounded, color: c, size: 18),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              name,
-              style: const TextStyle(fontWeight: FontWeight.w600),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name,
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                if (difficulty != null)
+                  Text(difficulty,
+                      style: TextStyle(
+                          fontSize: 11, color: Colors.grey.shade500)),
+              ],
             ),
           ),
           Text(
-            daysLeft <= 0
-                ? 'Today!'
-                : '$daysLeft day${daysLeft == 1 ? '' : 's'} left',
+            daysLeft <= 0 ? 'Today!' : '$daysLeft day${daysLeft == 1 ? '' : 's'} left',
             style: TextStyle(
                 fontSize: 12, color: c, fontWeight: FontWeight.bold),
           ),
@@ -407,6 +427,99 @@ class DashboardScreen extends StatelessWidget {
           ),
           elevation: 3,
         ),
+      ),
+    );
+  }
+}
+
+// ── Motivational tip card ────────────────────────────────────────────
+class _TipCard extends StatelessWidget {
+  final String tip;
+  const _TipCard({required this.tip});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.primary.withValues(alpha: 0.08),
+            AppColors.secondary.withValues(alpha: 0.08),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          const Text('💡', style: TextStyle(fontSize: 20)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              tip,
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.primary.withValues(alpha: 0.9),
+                fontStyle: FontStyle.italic,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Skip-day warning banner ──────────────────────────────────────────
+class _SkipDayBanner extends StatelessWidget {
+  final StudyProvider study;
+  const _SkipDayBanner({required this.study});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.orange.shade300),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.warning_amber_rounded,
+              color: Colors.orange.shade600, size: 22),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'You missed a study day!',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Tap "Generate Study Plan" to redistribute topics across remaining days.',
+                  style: TextStyle(
+                      fontSize: 11, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: () => study.generateAndSavePlan(),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.orange.shade700,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+            ),
+            child: const Text('Fix',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }

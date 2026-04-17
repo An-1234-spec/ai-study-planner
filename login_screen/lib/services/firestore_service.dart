@@ -16,6 +16,9 @@ class FirestoreService {
   CollectionReference _timetable(String uid) =>
       _db.collection('users').doc(uid).collection('timetable');
 
+  DocumentReference _settings(String uid) =>
+      _db.collection('users').doc(uid);
+
   // ── SUBJECTS ────────────────────────────────────────────────────
 
   Future<void> addSubject(String uid, Map<String, dynamic> data) async {
@@ -38,6 +41,23 @@ class FirestoreService {
   Future<void> updateSubject(
       String uid, String docId, Map<String, dynamic> data) async {
     await _subjects(uid).doc(docId).update(data);
+  }
+
+  /// Mark a single topic as completed for a subject.
+  /// Uses arrayUnion so it is safe to call multiple times.
+  Future<void> markTopicDone(
+      String uid, String subjectId, String topic) async {
+    await _subjects(uid).doc(subjectId).update({
+      'completedTopics': FieldValue.arrayUnion([topic]),
+    });
+  }
+
+  /// Unmark a topic (undo completion).
+  Future<void> unmarkTopicDone(
+      String uid, String subjectId, String topic) async {
+    await _subjects(uid).doc(subjectId).update({
+      'completedTopics': FieldValue.arrayRemove([topic]),
+    });
   }
 
   // ── TASKS ────────────────────────────────────────────────────────
@@ -66,24 +86,30 @@ class FirestoreService {
 
   // ── TIMETABLE ────────────────────────────────────────────────────
 
-  /// Clears old timetable and writes the new plan in a single batch.
+  /// Clears old timetable and writes the new plan in batches.
   Future<void> saveTimetable(
       String uid, List<Map<String, dynamic>> entries) async {
     // 1. Delete existing entries
     final existing = await _timetable(uid).get();
-    final deleteBatch = _db.batch();
-    for (final doc in existing.docs) {
-      deleteBatch.delete(doc.reference);
+    if (existing.docs.isNotEmpty) {
+      final deleteBatch = _db.batch();
+      for (final doc in existing.docs) {
+        deleteBatch.delete(doc.reference);
+      }
+      await deleteBatch.commit();
     }
-    await deleteBatch.commit();
 
-    // 2. Write new entries (Firestore batch max = 500)
-    final writeBatch = _db.batch();
-    for (final entry in entries) {
-      final ref = _timetable(uid).doc();
-      writeBatch.set(ref, entry);
+    // 2. Write new entries in batches of 400 (Firestore max = 500)
+    const int batchSize = 400;
+    for (int i = 0; i < entries.length; i += batchSize) {
+      final chunk = entries.sublist(i, (i + batchSize).clamp(0, entries.length));
+      final writeBatch = _db.batch();
+      for (final entry in chunk) {
+        final ref = _timetable(uid).doc();
+        writeBatch.set(ref, entry);
+      }
+      await writeBatch.commit();
     }
-    await writeBatch.commit();
   }
 
   Stream<QuerySnapshot> getTimetableStream(String uid) {
@@ -93,5 +119,22 @@ class FirestoreService {
   Future<void> updateTimetableEntryDone(
       String uid, String docId, bool isDone) async {
     await _timetable(uid).doc(docId).update({'isDone': isDone});
+  }
+
+  // ── USER SETTINGS ────────────────────────────────────────────────
+
+  /// Save global settings (e.g. dailyHours, lastLogin).
+  Future<void> saveUserSettings(String uid, Map<String, dynamic> data) async {
+    await _settings(uid).set(data, SetOptions(merge: true));
+  }
+
+  /// Stream of user-level settings document.
+  Stream<DocumentSnapshot> getUserSettingsStream(String uid) {
+    return _settings(uid).snapshots();
+  }
+
+  /// One-time fetch of user settings (for login-day detection).
+  Future<DocumentSnapshot> getUserSettings(String uid) async {
+    return _settings(uid).get();
   }
 }
